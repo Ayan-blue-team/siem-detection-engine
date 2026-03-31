@@ -2,9 +2,7 @@ import os
 import requests
 import urllib3
 
-
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 
 def deploy_splunk_rules():
     splunk_url = os.getenv('SPLUNK_URL') 
@@ -21,8 +19,27 @@ def deploy_splunk_rules():
                     data = {'name': rule_name, 'search': query, 'disabled': '0'}
                     
                     print(f"Splunk-a göndərilir: {rule_name}")
-                    requests.post(f"{splunk_url}/services/saved/searches", data=data, headers=headers, verify=False)
+                    
+                    # 1. Qaydanı yaradırıq
+                    url = f"{splunk_url}/services/saved/searches"
+                    response = requests.post(url, data=data, headers=headers, verify=False)
 
+                    if response.status_code in [200, 201]:
+                        print(f"Uğurla yaradıldı: {rule_name}")
+                        
+                        # 2. Paylaşım icazəsini GLOBAL edirik
+                        acl_url = f"{splunk_url}/services/saved/searches/{rule_name}/acl"
+                        acl_data = {'sharing': 'global', 'owner': 'admin'}
+                        
+                        acl_res = requests.post(acl_url, data=acl_data, headers=headers, verify=False)
+                        
+                        if acl_res.status_code == 200:
+                            print(f"Paylaşım statusu: Global-a dəyişdirildi.")
+                        else:
+                            print(f"Paylaşım xətası: {acl_res.status_code}")
+                    else:
+                        # Əgər qayda artıq varsa, 409 xətası ala bilərsiniz
+                        print(f"Splunk xətası ({response.status_code}): {response.text}")
 
 def deploy_qradar_rules():
     qradar_url = os.getenv('QRADAR_URL')
@@ -39,8 +56,12 @@ def deploy_qradar_rules():
                     data = {"name": rule_name, "type": "ADE", "enabled": True, "base_query": query}
                     
                     print(f"QRadar-a göndərilir: {rule_name}")
-                    requests.post(f"{qradar_url}/api/analytics/rules", json=data, headers=headers, verify=False)
-
+                    response = requests.post(f"{qradar_url}/api/analytics/rules", json=data, headers=headers, verify=False)
+                    
+                    if response.status_code in [200, 201]:
+                        print(f"QRadar-da uğurla yaradıldı: {rule_name}")
+                    else:
+                        print(f"QRadar xətası ({response.status_code}): {response.text}")
 
 if __name__ == "__main__":
     print("--- Avtomatlaşdırma Başladı ---")
