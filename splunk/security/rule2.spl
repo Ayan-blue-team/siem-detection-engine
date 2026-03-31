@@ -1,1 +1,4 @@
-
+index=main sourcetype="WinEventLog" EventCode=4625 
+| stats count as failure_count by user, src_ip 
+| where failure_count > 10 
+| table user, src_ip, failure_count
