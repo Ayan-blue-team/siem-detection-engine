@@ -5,14 +5,16 @@ on:
     branches:
       - main
     paths:
-      - 'splunk/**'
-      - 'qradar/**'  
+      - 'splunk/security/**'
+      - 'qradar/aql_queries/**'
+      - 'scripts/siem_api_sync.py' # Skript dəyişəndə də robotun işləməsi üçün
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -24,7 +26,6 @@ jobs:
 
       - name: Run Robot
         env:
-        
           SPLUNK_URL: ${{ secrets.SPLUNK_URL }}
           SPLUNK_TOKEN: ${{ secrets.SPLUNK_TOKEN }}
           QRADAR_URL: ${{ secrets.QRADAR_URL }}
