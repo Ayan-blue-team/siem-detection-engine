@@ -9,15 +9,19 @@ on:
       - 'qradar/aql_queries/**'
       - 'scripts/siem_api_sync.py'
 
+# Bütün workflow üçün Node.js 24-ü məcburi edirik
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Yeniləndi
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # Yeniləndi
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
