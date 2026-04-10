@@ -1,0 +1,17 @@
+index=sysmon EventCode=1
+    (Image="*\\schtasks.exe" OR Image="*\\at.exe")
+    CommandLine="*/create*"
+| rex field=CommandLine "\/tr\s+\"?(?<task_run>[^\s\"]+)"
+| rex field=CommandLine "\/sc\s+(?<schedule_type>\w+)"
+| eval suspicious_run = if(
+    match(task_run, "(?i)temp|appdata|public|programdata") OR
+    match(task_run, "(?i)\.ps1|\.vbs|\.bat|powershell|cmd\.exe"),
+    1, 0)
+| eval high_freq = if(schedule_type="MINUTE", 1, 0)
+| eval privesc = if(
+    match(CommandLine, "(?i)\/ru\s+system|\/ru\s+nt authority"),
+    1, 0)
+| eval risk_score = (suspicious_run * 3) + (high_freq * 2) + (privesc * 4)
+| where risk_score >= 4
+| table _time, ComputerName, User,
+    task_run, schedule_type, risk_score, CommandLine
