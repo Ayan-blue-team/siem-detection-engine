@@ -1,0 +1,22 @@
+index=sysmon EventCode=11
+| bucket _time span=60s
+| stats count AS file_changes
+    dc(TargetFilename) AS unique_files
+    values(TargetFilename) AS filenames
+    by Image, ComputerName, _time
+| where file_changes >= 50
+| eval is_ransomware_ext = if(
+    match(mvjoin(filenames, " "),
+    "(?i)\\.(locked|encrypted|enc|crypt|ransom)"),
+    1, 0
+  )
+| join type=left ComputerName [
+    search index=wineventlog EventCode=4688
+      (CommandLine="*vssadmin*delete*shadows*"
+       OR CommandLine="*wmic*shadowcopy*delete*"
+       OR CommandLine="*bcdedit*/set*recoveryenabled*no*")
+    | stats count AS shadow_del by ComputerName
+  ]
+| where is_ransomware_ext=1 OR shadow_del >= 1
+| table _time, ComputerName, Image,
+    file_changes, unique_files, shadow_del
