@@ -1,0 +1,15 @@
+index=wineventlog sourcetype=WinEventLog:Security EventCode=4769
+    Ticket_Encryption_Type=0x17 Service_Name!="*$"
+| bucket _time span=10m
+| stats count AS ticket_count
+    dc(Service_Name) AS unique_svcs
+    values(Service_Name) AS services
+    by _time, Account_Name, Client_Address
+| where ticket_count >= 5 AND unique_svcs >= 3
+| eval risk_score = case(
+    ticket_count >= 20, "CRITICAL",
+    ticket_count >= 10, "HIGH",
+    true(), "MEDIUM"
+  )
+| table _time, Account_Name, Client_Address,
+    ticket_count, unique_svcs, risk_score, services
