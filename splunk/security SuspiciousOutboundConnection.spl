@@ -1,0 +1,19 @@
+index=sysmon EventCode=3 Initiated=true
+    (DestinationPort=80 OR DestinationPort=443
+     OR DestinationPort=8080 OR DestinationPort=8443)
+    NOT (Image="*\\chrome.exe"   OR Image="*\\firefox.exe"
+     OR  Image="*\\msedge.exe"   OR Image="*\\iexplore.exe"
+     OR  Image="*\\OneDrive.exe" OR Image="*\\Teams.exe"
+     OR  Image="*\\outlook.exe"  OR Image="*\\svchost.exe")
+| eval suspicious = if(
+    match(Image, "(?i)winword|excel|powerpnt|wscript|mshta|rundll32|regsvr32|cmd\.exe"),
+    1, 0)
+| where suspicious = 1
+| bin _time span=10m
+| stats count AS conn_count
+    values(DestinationIp) AS dest_ips
+    values(DestinationPort) AS dest_ports
+    by ComputerName, User, Image, _time
+| sort -conn_count
+| table _time, ComputerName, User, Image,
+    dest_ips, dest_ports, conn_count
