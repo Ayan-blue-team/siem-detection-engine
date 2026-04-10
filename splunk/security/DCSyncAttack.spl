@@ -1,0 +1,15 @@
+index=wineventlog sourcetype=WinEventLog:Security EventCode=4624
+    Logon_Type=3 Authentication_Package=NTLM
+    NOT (Account_Name="*$" OR Account_Name="ANONYMOUS LOGON")
+| bin _time span=30m 
+| stats count AS logon_count
+    dc(ComputerName) AS dest_hosts
+    values(ComputerName) AS destinations
+    by Account_Name, IpAddress, _time
+| where logon_count >= 3 AND dest_hosts >= 3
+| eval lateral_risk = logon_count * dest_hosts
+| eval alert_msg = "PtH suspected: " + Account_Name
+    + " -> " + tostring(dest_hosts) + " hosts"
+| sort -lateral_risk
+| table _time, Account_Name, IpAddress,
+    logon_count, dest_hosts, lateral_risk, alert_msg
