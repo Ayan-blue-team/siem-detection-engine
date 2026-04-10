@@ -1,0 +1,17 @@
+index=wineventlog sourcetype=WinEventLog:Security
+    EventCode=4624 Logon_Type IN (2, 10)
+| eval hour = tonumber(strftime(_time, "%H"))
+| eval day  = strftime(_time, "%a")
+| eval is_off_hours = if(
+    (hour < 7 OR hour >= 20) AND
+    (day != "Sat" AND day != "Sun"),
+    1, 0)
+| where is_off_hours = 1
+| lookup privileged_accounts.csv Account_Name OUTPUT is_privileged, account_tier
+| where is_privileged="true"
+| stats count AS offhour_logins
+    values(IpAddress) AS source_ips
+    values(ComputerName) AS destinations
+    by Account_Name, account_tier
+| sort -offhour_logins
+| table Account_Name, account_tier, offhour_logins, source_ips, destinations
