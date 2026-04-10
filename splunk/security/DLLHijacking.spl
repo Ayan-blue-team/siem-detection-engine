@@ -1,0 +1,21 @@
+index=sysmon EventCode=11
+    TargetFilename="*.dll"
+    NOT (TargetFilename="*\\Windows\\*"
+         OR TargetFilename="*\\Program Files*"
+         OR TargetFilename="*\\SysWOW64\\*")
+| eval hijack_candidate = if(
+    match(TargetFilename,
+    "(?i)version\.dll|wtsapi32\.dll|winmm\.dll|dbghelp\.dll|cryptbase\.dll"),
+    1, 0)
+| where hijack_candidate = 1
+| join type=left TargetFilename [
+    search index=sysmon EventCode=7
+    | rename ImageLoaded AS TargetFilename
+    | stats count AS load_count
+        values(Image) AS loading_processes
+        by TargetFilename
+  ]
+| eval risk = "DLL_HIJACK_ATTEMPT"
+| sort -load_count
+| table _time, ComputerName, TargetFilename,
+    loading_processes, load_count, risk
