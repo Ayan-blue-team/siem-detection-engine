@@ -15,53 +15,67 @@ def deploy_splunk_rules():
                 with open(os.path.join(rule_path, filename), 'r') as f:
                     query = f.read()
                     rule_name = filename.replace(".spl", "")
-                    headers = {'Authorization': f'Bearer {splunk_token}'}
+                    # Tokenin təmiz olduğundan əmin oluruq
+                    headers = {'Authorization': f'Bearer {splunk_token.strip()}'}
                     data = {'name': rule_name, 'search': query, 'disabled': '0'}
                     
                     print(f"Splunk-a göndərilir: {rule_name}")
                     
-                    # 1. Qaydanı yaradırıq
                     url = f"{splunk_url}/services/saved/searches"
                     response = requests.post(url, data=data, headers=headers, verify=False)
 
                     if response.status_code in [200, 201]:
                         print(f"Uğurla yaradıldı: {rule_name}")
-                        
-                        # 2. Paylaşım icazəsini GLOBAL edirik
                         acl_url = f"{splunk_url}/services/saved/searches/{rule_name}/acl"
                         acl_data = {'sharing': 'global', 'owner': 'admin'}
-                        
-                        acl_res = requests.post(acl_url, data=acl_data, headers=headers, verify=False)
-                        
-                        if acl_res.status_code == 200:
-                            print(f"Paylaşım statusu: Global-a dəyişdirildi.")
-                        else:
-                            print(f"Paylaşım xətası: {acl_res.status_code}")
+                        requests.post(acl_url, data=acl_data, headers=headers, verify=False)
                     else:
-                        # Əgər qayda artıq varsa, 409 xətası ala bilərsiniz
                         print(f"Splunk xətası ({response.status_code}): {response.text}")
 
 def deploy_qradar_rules():
     qradar_url = os.getenv('QRADAR_URL')
+    # URL-in sonundakı lazımsız / işarəsini təmizləyirik
+    qradar_url = qradar_url.rstrip('/')
     qradar_token = os.getenv('QRADAR_TOKEN')
     rule_path = "qradar/aql_queries/"
     
     if os.path.exists(rule_path):
-        for filename in os.listdir(rule_path):
-            if filename.endswith(".aql"):
-                with open(os.path.join(rule_path, filename), 'r') as f:
-                    query = f.read()
-                    rule_name = filename.replace(".aql", "")
-                    headers = {'SEC': qradar_token, 'Content-Type': 'application/json'}
-                    data = {"name": rule_name, "type": "ADE", "enabled": True, "base_query": query}
-                    
-                    print(f"QRadar-a göndərilir: {rule_name}")
-                    response = requests.post(f"{qradar_url}/api/analytics/rules", json=data, headers=headers, verify=False)
-                    
-                    if response.status_code in [200, 201]:
-                        print(f"QRadar-da uğurla yaradıldı: {rule_name}")
-                    else:
-                        print(f"QRadar xətası ({response.status_code}): {response.text}")
+        files = [f for f in os.listdir(rule_path) if f.endswith(".aql")]
+        print(f"DEBUG: QRadar qovluğunda tapılan .aql faylları: {files}")
+        
+        for filename in files:
+            with open(os.path.join(rule_path, filename), 'r') as f:
+                query = f.read()
+                rule_name = filename.replace(".aql", "")
+                
+                # QRadar API-da SEC token boşluqsuz olmalıdır
+                headers = {
+                    'SEC': qradar_token.strip(), 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+                
+                # QRadar bəzən 'base_query' əvəzinə fərqli JSON strukturu istəyir.
+                # Ən standart 'Custom Rule' (ADE) formatı:
+                data = {
+                    "name": rule_name,
+                    "type": "ADE",
+                    "enabled": True,
+                    "base_query": query
+                }
+                
+                print(f"QRadar-a göndərilir: {rule_name}")
+                
+                # URL-i dəyişib yenidən yoxlayırıq
+                endpoint = f"{qradar_url}/api/analytics/rules"
+                response = requests.post(endpoint, json=data, headers=headers, verify=False)
+                
+                if response.status_code in [200, 201]:
+                    print(f"QRadar-da uğurla yaradıldı: {rule_name}")
+                elif response.status_code == 404:
+                    print(f"QRadar xətası (404): Endpoint tapılmadı. Zəhmət olmasa API interfeysindən POST /analytics/rules yolunu yoxlayın.")
+                else:
+                    print(f"QRadar xətası ({response.status_code}): {response.text}")
 
 if __name__ == "__main__":
     print("--- Avtomatlaşdırma Başladı ---")
