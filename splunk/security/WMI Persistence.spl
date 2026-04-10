@@ -1,0 +1,18 @@
+index=sysmon (EventCode=19 OR EventCode=20 OR EventCode=21)
+| eval event_type = case(
+    EventCode=19, "WmiEventFilter",
+    EventCode=20, "WmiEventConsumer",
+    EventCode=21, "FilterConsumerBinding"
+  )
+| bin _time span=5m
+| stats count AS event_count
+    values(event_type) AS wmi_events
+    values(Name) AS sub_names
+    by ComputerName, User, _time
+| eval has_filter   = if(mvfind(wmi_events, "WmiEventFilter") >= 0, 1, 0)
+| eval has_consumer = if(mvfind(wmi_events, "WmiEventConsumer") >= 0, 1, 0)
+| eval has_binding  = if(mvfind(wmi_events, "FilterConsumerBinding") >= 0, 1, 0)
+| where (has_filter + has_consumer + has_binding) >= 2
+| table _time, ComputerName, User,
+    wmi_events, sub_names, has_filter, has_consumer, has_binding
+    
