@@ -1,0 +1,22 @@
+index=sysmon EventCode=1
+    (ParentImage="*\\w3wp.exe"
+     OR ParentImage="*\\httpd.exe"
+     OR ParentImage="*\\nginx.exe"
+     OR ParentImage="*\\php-cgi.exe")
+    (Image="*\\cmd.exe"         OR Image="*\\powershell.exe"
+     OR Image="*\\wscript.exe"  OR Image="*\\cscript.exe"
+     OR Image="*\\whoami.exe"   OR Image="*\\net.exe"
+     OR Image="*\\ipconfig.exe" OR Image="*\\systeminfo.exe")
+| bin _time span=10m
+| stats count AS spawn_count
+    values(Image) AS child_processes
+    values(CommandLine) AS commands
+    by ComputerName, ParentImage, User, _time
+| eval webshell_confidence = case(
+    spawn_count >= 3, "HIGH",
+    spawn_count >= 1, "MEDIUM",
+    true(), "LOW"
+  )
+| where webshell_confidence IN ("HIGH", "MEDIUM")
+| table _time, ComputerName, ParentImage,
+    child_processes, commands, webshell_confidence
