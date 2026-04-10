@@ -1,0 +1,23 @@
+index=sysmon EventCode=1
+| eval lolbin = case(
+    match(Image, "(?i)mshta\.exe"),    "mshta",
+    match(Image, "(?i)regsvr32\.exe"), "regsvr32",
+    match(Image, "(?i)rundll32\.exe"), "rundll32",
+    match(Image, "(?i)certutil\.exe"), "certutil",
+    match(Image, "(?i)bitsadmin\.exe"),"bitsadmin",
+    match(Image, "(?i)wscript\.exe|cscript\.exe"), "wscript",
+    match(Image, "(?i)msiexec\.exe"),  "msiexec",
+    true(), null()
+  )
+| where isnotnull(lolbin)
+| eval network_access = if(match(CommandLine, "(?i)http|ftp"), 1, 0)
+| eval remote_exec    = if(match(ParentImage, "(?i)winword|excel|outlook"), 1, 0)
+| eval encoded_arg    = if(match(CommandLine, "(?i)-[Ee][Nn][Cc]|base64"), 1, 0)
+| eval abuse_score = (network_access * 3) + (remote_exec * 4) + (encoded_arg * 3)
+| where abuse_score >= 3
+| bin _time span=1h
+| stats count
+    values(lolbin) AS lolbins_used
+    sum(abuse_score) AS total_score
+    by ComputerName, User, ParentImage, _time
+| sort -total_score
