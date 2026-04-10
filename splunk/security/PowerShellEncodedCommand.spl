@@ -1,0 +1,15 @@
+index=sysmon EventCode=1
+    (Image="*\\powershell.exe" OR Image="*\\pwsh.exe")
+| eval cmd_len = len(CommandLine)
+| eval encoded = if(
+    match(CommandLine, "(?i)-[Ee][Nn][Cc]"), 1, 0)
+| eval amsi_bypass = if(
+    match(CommandLine, "(?i)amsi|System\.Management\.Automation"), 1, 0)
+| eval download_cradle = if(
+    match(CommandLine, "(?i)IEX|Invoke-Expression|WebClient|DownloadString"), 1, 0)
+| eval suspicious_score =
+    (encoded * 3) + (amsi_bypass * 4) + (download_cradle * 3) +
+    if(cmd_len > 500, 2, 0) + if(cmd_len > 1000, 3, 0)
+| where suspicious_score >= 5
+| table _time, ComputerName, User, ParentImage,
+    suspicious_score, encoded, amsi_bypass, download_cradle, cmd_len
