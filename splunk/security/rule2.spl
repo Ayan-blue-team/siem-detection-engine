@@ -1,1 +1,1 @@
-index=main sourcetype="win_event_log" EventCode=4625
+index=main sourcetype="win_event_log" EventCode=4624
