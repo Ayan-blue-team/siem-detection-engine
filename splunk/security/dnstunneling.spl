@@ -1,0 +1,15 @@
+index=dns sourcetype=stream:dns query_type=A
+    NOT (query="*.microsoft.com" OR query="*.windows.com"
+         OR query="*.google.com"  OR query="*.akamai.net")
+| rex field=query "^(?<subdomain>[^.]+)\."
+| eval sub_len = len(subdomain)
+| bin _time span=15m
+| stats avg(sub_len) AS avg_len
+    count AS query_count
+    dc(query) AS unique_queries
+    by src_ip, _time
+| where avg_len >= 30 OR query_count >= 100
+| eval tunnel_score = round(avg_len * query_count / 100, 2)
+| sort -tunnel_score
+| table _time, src_ip, query_count,
+    unique_queries, avg_len, tunnel_score
