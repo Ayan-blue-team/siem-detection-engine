@@ -1,0 +1,16 @@
+index=sysmon sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
+    EventCode=10 TargetImage="*\\lsass.exe"
+| eval access_rights_dec = tonumber(GrantedAccess, 16)
+| where (
+    match(GrantedAccess, "(?i)0x1010") OR
+    match(GrantedAccess, "(?i)0x1410") OR
+    match(GrantedAccess, "(?i)0x143a") OR
+    access_rights_dec >= 4096
+  )
+  AND NOT (
+    SourceImage="*\\MsMpEng.exe" OR
+    SourceImage="*\\csrss.exe" OR
+    SourceImage="*\\wininit.exe"
+  )
+| table _time, ComputerName, SourceImage,
+    SourceProcessId, GrantedAccess, CallTrace
