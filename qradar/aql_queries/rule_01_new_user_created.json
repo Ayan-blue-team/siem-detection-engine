@@ -1,0 +1,64 @@
+{
+  "name": "SOC-001 | New Local User Account Created",
+  "description": "Detects when a new local user account is created on a Windows system. Attackers often create backdoor accounts for persistence. Maps to MITRE ATT&CK T1136.001 (Create Account: Local Account).",
+  "attack_technique": "T1136.001",
+  "offense_type": "Account Creation",
+  "severity": 7,
+  "credibility": 8,
+  "relevance": 9,
+  "enabled": true,
+  "test_event_ids": ["4720"],
+  "log_sources": ["Microsoft Windows Security Event Log"],
+  "qradar_rule": {
+    "type": "EVENT",
+    "rule_name": "SOC-001 | New Local User Account Created",
+    "notes": "Attacker perspective: After gaining initial access, attackers create local accounts to maintain persistence even if initial credentials are changed. Detection: Windows Event ID 4720 is generated whenever a new user account is created.",
+    "conditions": {
+      "group_by": ["userName", "sourceIP"],
+      "time_interval": 60,
+      "time_unit": "MINUTES",
+      "accumulate_n_events_over_time": 1,
+      "aql": "SELECT * FROM events WHERE LOGSOURCETYPENAME(devicetype) ILIKE '%Windows%' AND eventid = '4720' AND username NOT IN (SELECT username FROM reference_data.sets['SOC-Whitelisted-Admins']) LAST 60 MINUTES",
+      "building_blocks": [
+        "BB:CategoryDefinition: Authentication",
+        "BB:NetworkDefinition: Internal Network"
+      ],
+      "tests": [
+        {
+          "field": "Event ID",
+          "operator": "equals",
+          "value": "4720",
+          "description": "Windows Security Event: A user account was created"
+        },
+        {
+          "field": "Log Source Type",
+          "operator": "contains",
+          "value": "WinCollect",
+          "description": "Must come from Windows event log source"
+        },
+        {
+          "field": "Source IP",
+          "operator": "is not null",
+          "description": "Source must be identifiable"
+        }
+      ]
+    },
+    "offense_settings": {
+      "offense_type": "Source IP",
+      "offense_index": "Source IP",
+      "message": "ALERT: New local user account created on host [destinationIP] by [userName]. Possible backdoor account creation. Event ID: 4720. Review immediately.",
+      "description": "A new local Windows user account was created. This may indicate attacker persistence via local account creation (MITRE T1136.001).",
+      "severity": 7
+    },
+    "exclusions": [
+      "Exclude if source username is in 'SOC-Whitelisted-Admins' reference set",
+      "Exclude if event occurs during scheduled maintenance windows"
+    ],
+    "response_actions": [
+      "Immediately disable the newly created account",
+      "Investigate source IP for signs of compromise",
+      "Check for other suspicious activity from same source",
+      "Review account creation audit logs"
+    ]
+  }
+}
