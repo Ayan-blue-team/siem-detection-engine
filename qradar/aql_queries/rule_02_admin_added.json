@@ -1,0 +1,30 @@
+{
+  "name": "SOC-QR-002: User Added to Privileged Group",
+  "base_capacity_per_interval": 0,
+  "capacity_timestamp": 0,
+  "enabled": true,
+  "description": "Detection of a user being added to sensitive groups like Administrators or Domain Admins.",
+  "type": "EVENT",
+  "owner": "Ayan-Blue-Team",
+  "origin": "USER",
+  "tests": [
+    {
+      "test_type": "TEXT_MATCH",
+      "field": "Event ID",
+      "value": "4732,4728,4756"
+    },
+    {
+      "test_type": "TEXT_MATCH",
+      "field": "Group Name",
+      "value": "Administrators,Domain Admins,wheel"
+    }
+  ],
+  "responses": [
+    {
+      "type": "OFFENSE",
+      "description": "High Severity: Privileged Group Membership Change",
+      "severity": 9,
+      "credibility": 8
+    }
+  ]
+}
