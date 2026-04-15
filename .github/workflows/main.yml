@@ -1,35 +1,33 @@
-# .github/workflows/deploy-qradar.yml
-name: Deploy Rules to QRadar
+name: SIEM Detection Engine Sync
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - 'qradar/rules/**'
+      - 'qradar/aql_queries/**'
+      - 'splunk/security/**'
+      - 'scripts/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pip install requests
 
-      - name: Deploy Rules to QRadar
+      - name: Sync Rules to SIEM
         env:
-          QRADAR_HOST: ${{ secrets.QRADAR_HOST }}
+          QRADAR_HOST: ${{ secrets.QRADAR_URL }}
           QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
-        run: python qradar/deploy_qradar.py
-
-      - name: Deploy Rules to Splunk
-        env:
-          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_HOST: ${{ secrets.SPLUNK_URL }}
           SPLUNK_TOKEN: ${{ secrets.SPLUNK_TOKEN }}
-        run: python splunk/deploy_splunk.py
-        
+        run: python scripts/siem_api_sync.py
