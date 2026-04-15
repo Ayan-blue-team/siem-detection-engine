@@ -1,7 +1,8 @@
-name: Deploy Rules to QRadar
+name: SIEM Detection as Code Sync
 
 on:
   push:
+    branches: [ main ]
     paths:
       - 'rules/**'
 
@@ -9,19 +10,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pip install requests
 
-      - name: Run Deployment Script
+      - name: Run Sync Script
         env:
-          QRADAR_CONSOLE_IP: ${{ secrets.QRADAR_IP }}
-          QRADAR_API_TOKEN: ${{ secrets.QRADAR_TOKEN }}
-        run: python scripts/deploy_rules.py
+          QRADAR_URL: ${{ secrets.QRADAR_URL }}
+          QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
+        run: python scripts/siem_api_sync.py
