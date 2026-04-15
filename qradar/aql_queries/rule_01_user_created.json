@@ -1,0 +1,12 @@
+{
+  "name": "SOC-QR-001: New User Account Created",
+  "description": "Hücumçu sistemdə qalmaq üçün yeni istifadəçi yaradır (EventID 4720).",
+  "enabled": true,
+  "type": "EVENT",
+  "responses": [{
+    "type": "OFFENSE",
+    "description": "Yeni istifadəçi yaradıldı - Persistence riski!",
+    "severity": 6,
+    "credibility": 7
+  }]
+}
