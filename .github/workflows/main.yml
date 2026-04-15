@@ -1,37 +1,27 @@
-name: Deploy Rules to SIEM
+name: Deploy Rules to QRadar
 
 on:
   push:
-    branches:
-      - main
     paths:
-      - 'splunk/security/**'
-      - 'qradar/aql_queries/**'
-      - 'scripts/siem_api_sync.py'
-
-# Bütün workflow üçün Node.js 24-ü məcburi edirik
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+      - 'rules/**'
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
           python-version: '3.9'
 
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run Robot
+      - name: Run Deployment Script
         env:
-          SPLUNK_URL: ${{ secrets.SPLUNK_URL }}
-          SPLUNK_TOKEN: ${{ secrets.SPLUNK_TOKEN }}
-          QRADAR_URL: ${{ secrets.QRADAR_URL }}
-          QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
-        run: python scripts/siem_api_sync.py
+          QRADAR_CONSOLE_IP: ${{ secrets.QRADAR_IP }}
+          QRADAR_API_TOKEN: ${{ secrets.QRADAR_TOKEN }}
+        run: python scripts/deploy_rules.py
