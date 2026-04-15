@@ -1,7 +1,7 @@
 {
-  "name": "DaC: New User Created",
+  "name": "DaC: User Added to Admins",
   "type": "EVENT",
   "enabled": true,
-  "action": {"type": "OFFENSE", "severity": 4, "description": "New account creation detected"},
-  "test_definitions": {"and": [{"test_id": "EventMatchesEventID", "parameters": {"event_id": "4720"}}]}
+  "action": {"type": "OFFENSE", "severity": 8, "description": "Privilege escalation: User added to Admins"},
+  "test_definitions": {"and": [{"test_id": "EventMatchesEventID", "parameters": {"event_id": "4732"}}]}
 }
