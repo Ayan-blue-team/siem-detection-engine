@@ -1,51 +1,66 @@
-import os
+# qradar/deploy_qradar.py
 import requests
 import json
+import os
+import glob
 
-# QRadar məlumatları GitHub Secrets-dən gəlir
-QRADAR_URL = os.getenv('QRADAR_URL') # Məs: https://1.2.3.4
-QRADAR_TOKEN = os.getenv('QRADAR_TOKEN')
-
-# Qovluq yollarını dinamik təyin edirik (Xəta almamaları üçün)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RULES_DIR = os.path.join(BASE_DIR, 'rules')
+QRADAR_HOST = os.environ['QRADAR_URL']  # GitHub Secret
+QRADAR_TOKEN = os.environ['QRADAR_TOKEN']  # GitHub Secret
 
 headers = {
     'SEC': QRADAR_TOKEN,
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    'Accept': 'application/json',
+    'Version': '17.0'
 }
 
-def sync_to_qradar():
-    if not os.path.exists(RULES_DIR):
-        print(f"Xəta: {RULES_DIR} qovluğu tapılmadı!")
-        return
+BASE_URL = f"https://{QRADAR_HOST}/api"
 
-    for filename in os.listdir(RULES_DIR):
-        if filename.endswith('.json'):
-            file_path = os.path.join(RULES_DIR, filename)
-            with open(file_path, 'r') as f:
-                try:
-                    rule_data = json.load(f)
-                    print(f"Yüklənir: {filename}...")
-                    
-                    # QRadar API-yə Rule göndərilməsi
-                    # Qeyd: Mövcud qaydanı update etmək üçün PUT, yenisini yaratmaq üçün POST
-                    response = requests.post(
-                        f"{QRADAR_URL}/api/analytics/rules", 
-                        headers=headers, 
-                        json=rule_data, 
-                        verify=False
-                    )
-                    
-                    if response.status_code in [200, 201]:
-                        print(f"Uğurlu: {filename} SIEM-də aktivdir.")
-                    else:
-                        print(f"Xəta {filename}: {response.status_code} - {response.text}")
-                except Exception as e:
-                    print(f"Fayl oxunarkən xəta: {filename} - {str(e)}")
+def get_existing_rules():
+    """Mövcud rule-ları gətir"""
+    r = requests.get(f"{BASE_URL}/analytics/rules", headers=headers, verify=False)
+    return {rule['name']: rule['id'] for rule in r.json()}
 
-if __name__ == "__main__":
-    # SSL xətalarını görməzdən gəlmək üçün (Self-signed sertifikatlar üçün)
-    requests.packages.urllib3.disable_warnings()
-    sync_to_qradar()
+def create_or_update_rule(rule_data, existing_rules):
+    """Rule yarat və ya güncəllə"""
+    name = rule_data['name']
+    if name in existing_rules:
+        rule_id = existing_rules[name]
+        r = requests.post(
+            f"{BASE_URL}/analytics/rules/{rule_id}",
+            headers=headers,
+            json=rule_data,
+            verify=False
+        )
+        print(f"✅ UPDATED: {name} (ID: {rule_id})")
+    else:
+        r = requests.post(
+            f"{BASE_URL}/analytics/rules",
+            headers=headers,
+            json=rule_data,
+            verify=False
+        )
+        print(f"✅ CREATED: {name}")
+    return r.status_code
+
+# 10 rule-u deploy et
+existing = get_existing_rules()
+
+rules = [
+    {
+        "name": "SIEM-RULE-001: New User Account Created",
+        "type": "EVENT",
+        "enabled": True,
+        "owner": "admin",
+        "origin": "USER",
+        "base_host_id": 0,
+        "average_capacity": 0,
+        "capacity_timestamp": 0
+    },
+    # ... digər rule-lar eyni strukturda
+]
+
+for rule in rules:
+    status = create_or_update_rule(rule, existing)
+    if status not in [200, 201]:
+        print(f"❌ FAILED: {rule['name']} - Status: {status}")
