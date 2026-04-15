@@ -1,66 +1,54 @@
-# qradar/deploy_qradar.py
-import requests
-import json
 import os
 import glob
+import requests
+import json
 
-QRADAR_HOST = os.environ['QRADAR_URL']  # GitHub Secret
-QRADAR_TOKEN = os.environ['QRADAR_TOKEN']  # GitHub Secret
+# --- Fayl Yolları ---
+QRADAR_PATH = "qradar/aql_queries/*.json"
+SPLUNK_PATH = "splunk/security/*.spl"
 
-headers = {
-    'SEC': QRADAR_TOKEN,
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Version': '17.0'
-}
+def sync_qradar():
+    print("--- 🔵 QRadar API Sync ---")
+    files = glob.glob(QRADAR_PATH)
+    for file_path in files:
+        with open(file_path, 'r') as f:
+            rule_data = json.load(f)
+            # Fayl adını rule adı kimi istifadə edirik
+            rule_name = os.path.basename(file_path).split('.')[0]
+            
+            # API URL və Header (Host və Token GitHub Secret-dən gəlir)
+            url = f"https://{os.environ['QRADAR_URL']}/api/analytics/rules"
+            headers = {"SEC": os.environ['QRADAR_TOKEN'], "Content-Type": "application/json"}
+            
+            # QRadar API-yə göndərilmə məntiqi
+            response = requests.post(url, headers=headers, json=rule_data, verify=False)
+            print(f"Rule: {rule_name} | Status: {response.status_code}")
 
-BASE_URL = f"https://{QRADAR_HOST}/api"
+def sync_splunk():
+    print("\n--- 🟢 Splunk API Sync ---")
+    files = glob.glob(SPLUNK_PATH)
+    for file_path in files:
+        with open(file_path, 'r') as f:
+            query = f.read()
+            rule_name = os.path.basename(file_path).split('.')[0]
+            
+            url = f"https://{os.environ['SPLUNK_URL']}:8089/servicesNS/admin/search/saved/searches"
+            headers = {"Authorization": f"Bearer {os.environ['SPLUNK_TOKEN']}"}
+            
+            # Splunk axtarış parametrləri
+            data = {
+                "name": rule_name,
+                "search": query,
+                "is_scheduled": 1,
+                "cron_schedule": "*/5 * * * *",
+                "alert_type": "number of events",
+                "alert_comparator": "greater than",
+                "alert_threshold": 0
+            }
+            
+            response = requests.post(url, headers=headers, data=data, verify=False)
+            print(f"Alert: {rule_name} | Status: {response.status_code}")
 
-def get_existing_rules():
-    """Mövcud rule-ları gətir"""
-    r = requests.get(f"{BASE_URL}/analytics/rules", headers=headers, verify=False)
-    return {rule['name']: rule['id'] for rule in r.json()}
-
-def create_or_update_rule(rule_data, existing_rules):
-    """Rule yarat və ya güncəllə"""
-    name = rule_data['name']
-    if name in existing_rules:
-        rule_id = existing_rules[name]
-        r = requests.post(
-            f"{BASE_URL}/analytics/rules/{rule_id}",
-            headers=headers,
-            json=rule_data,
-            verify=False
-        )
-        print(f"✅ UPDATED: {name} (ID: {rule_id})")
-    else:
-        r = requests.post(
-            f"{BASE_URL}/analytics/rules",
-            headers=headers,
-            json=rule_data,
-            verify=False
-        )
-        print(f"✅ CREATED: {name}")
-    return r.status_code
-
-# 10 rule-u deploy et
-existing = get_existing_rules()
-
-rules = [
-    {
-        "name": "SIEM-RULE-001: New User Account Created",
-        "type": "EVENT",
-        "enabled": True,
-        "owner": "admin",
-        "origin": "USER",
-        "base_host_id": 0,
-        "average_capacity": 0,
-        "capacity_timestamp": 0
-    },
-    # ... digər rule-lar eyni strukturda
-]
-
-for rule in rules:
-    status = create_or_update_rule(rule, existing)
-    if status not in [200, 201]:
-        print(f"❌ FAILED: {rule['name']} - Status: {status}")
+if __name__ == "__main__":
+    sync_qradar()
+    sync_splunk()
