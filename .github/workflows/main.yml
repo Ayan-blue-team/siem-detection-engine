@@ -26,8 +26,8 @@ jobs:
 
       - name: Sync Rules to SIEM
         env:
-          QRADAR_URL: ${{ secrets.QRADAR_URL }}   # Python skriptinə uyğun adlandırma
+          QRADAR_URL: ${{ secrets.QRADAR_URL }}
           QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
-          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_URL: ${{ secrets.SPLUNK_URL }}   # Şəkildə SPLUNK_URL olduğu üçün belə yazırıq
           SPLUNK_TOKEN: ${{ secrets.SPLUNK_TOKEN }}
         run: python scripts/siem_api_sync.py
