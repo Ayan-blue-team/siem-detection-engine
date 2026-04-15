@@ -1,15 +1,7 @@
 {
-  "name": "Yeni İstifadəçi Yaradılması",
-  "description": "AD-də yeni account yaradıldıqda trigger olunur",
-  "severity": 5,
+  "name": "DaC: New User Created",
+  "type": "EVENT",
   "enabled": true,
-  "expression": "SELECT \"EventID\", \"TargetUserName\", \"SourceIP\" FROM events WHERE \"EventID\" = 4720 LAST 15 MINUTES",
-  "qradar_rule": {
-    "offense_settings": {
-      "name": "Suspicious User Creation",
-      "message": "Yeni istifadəçi account-u yaradıldı. Təhlükəsizlik komandası yoxlasın.",
-      "offense_type": "Source IP"
-    },
-    "notes": "Active Directory Log Source-dan gəlir"
-  }
+  "action": {"type": "OFFENSE", "severity": 4, "description": "New account creation detected"},
+  "test_definitions": {"and": [{"test_id": "EventMatchesEventID", "parameters": {"event_id": "4720"}}]}
 }
