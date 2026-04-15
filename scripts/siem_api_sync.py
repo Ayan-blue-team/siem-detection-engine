@@ -2,31 +2,50 @@ import os
 import requests
 import json
 
-# QRadar məlumatları (GitHub Secrets-dən götürüləcək)
-QRADAR_CONSOLE = os.getenv('QRADAR_CONSOLE_IP')
-API_TOKEN = os.getenv('QRADAR_API_TOKEN')
+# QRadar məlumatları GitHub Secrets-dən gəlir
+QRADAR_URL = os.getenv('QRADAR_URL') # Məs: https://1.2.3.4
+QRADAR_TOKEN = os.getenv('QRADAR_TOKEN')
+
+# Qovluq yollarını dinamik təyin edirik (Xəta almamaları üçün)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RULES_DIR = os.path.join(BASE_DIR, 'rules')
 
 headers = {
-    'SEC': API_TOKEN,
+    'SEC': QRADAR_TOKEN,
     'Content-Type': 'application/json',
     'Accept': 'application/json'
 }
 
-def deploy_rules():
-    rules_path = 'rules/'
-    for filename in os.listdir(rules_path):
+def sync_to_qradar():
+    if not os.path.exists(RULES_DIR):
+        print(f"Xəta: {RULES_DIR} qovluğu tapılmadı!")
+        return
+
+    for filename in os.listdir(RULES_DIR):
         if filename.endswith('.json'):
-            with open(os.path.join(rules_path, filename), 'r') as f:
-                rule_data = json.load(f)
-                
-                # QRadar API-yə POST sorğusu
-                url = f"https://{QRADAR_CONSOLE}/api/analytics/rules"
-                response = requests.post(url, headers=headers, json=rule_data, verify=False)
-                
-                if response.status_code == 201:
-                    print(f"Uğurlu: {filename} SIEM-ə əlavə edildi.")
-                else:
-                    print(f"Xəta: {filename} yüklənmədi. Status: {response.status_code}")
+            file_path = os.path.join(RULES_DIR, filename)
+            with open(file_path, 'r') as f:
+                try:
+                    rule_data = json.load(f)
+                    print(f"Yüklənir: {filename}...")
+                    
+                    # QRadar API-yə Rule göndərilməsi
+                    # Qeyd: Mövcud qaydanı update etmək üçün PUT, yenisini yaratmaq üçün POST
+                    response = requests.post(
+                        f"{QRADAR_URL}/api/analytics/rules", 
+                        headers=headers, 
+                        json=rule_data, 
+                        verify=False
+                    )
+                    
+                    if response.status_code in [200, 201]:
+                        print(f"Uğurlu: {filename} SIEM-də aktivdir.")
+                    else:
+                        print(f"Xəta {filename}: {response.status_code} - {response.text}")
+                except Exception as e:
+                    print(f"Fayl oxunarkən xəta: {filename} - {str(e)}")
 
 if __name__ == "__main__":
-    deploy_rules()
+    # SSL xətalarını görməzdən gəlmək üçün (Self-signed sertifikatlar üçün)
+    requests.packages.urllib3.disable_warnings()
+    sync_to_qradar()
