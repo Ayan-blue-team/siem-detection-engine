@@ -1,28 +1,35 @@
-name: SIEM Detection as Code Sync
+# .github/workflows/deploy-qradar.yml
+name: Deploy Rules to QRadar
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'rules/**'
+      - 'qradar/rules/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.11'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pip install requests
 
-      - name: Run Sync Script
+      - name: Deploy Rules to QRadar
         env:
-          QRADAR_URL: ${{ secrets.QRADAR_URL }}
+          QRADAR_HOST: ${{ secrets.QRADAR_HOST }}
           QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
-        run: python scripts/siem_api_sync.py
+        run: python qradar/deploy_qradar.py
+
+      - name: Deploy Rules to Splunk
+        env:
+          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_TOKEN: ${{ secrets.SPLUNK_TOKEN }}
+        run: python splunk/deploy_splunk.py
+        
