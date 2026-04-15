@@ -4,10 +4,9 @@ import requests
 import json
 import urllib3
 
-# SSL xəbərdarlıqlarını (self-signed sertifikatlar üçün) söndürürük
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Fayl yollarını təyin edirik (Sənin GitHub strukturuna uyğun)
+# Fayl yolları
 QRADAR_PATH = "qradar/aql_queries/*.json"
 SPLUNK_PATH = "splunk/security/*.spl"
 
@@ -17,31 +16,47 @@ def sync_qradar():
     token = os.environ.get('QRADAR_TOKEN')
 
     if not host or not token:
-        print(f"❌ Xəta: QRadar məlumatları çatışmır! Host: {host}")
+        print(f"❌ Xəta: QRadar məlumatları çatışmır!")
         return
 
     files = glob.glob(QRADAR_PATH)
-    if not files:
-        print("ℹ️ QRadar üçün JSON faylı tapılmadı.")
-        return
+    headers = {
+        "SEC": token, 
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Version": "17.0"
+    }
 
     for file_path in files:
         try:
             with open(file_path, 'r') as f:
                 rule_data = json.load(f)
             
-            rule_name = os.path.basename(file_path).split('.')[0]
+            rule_name = rule_data.get('name', os.path.basename(file_path))
             url = f"https://{host}/api/analytics/rules"
-            headers = {
-                "SEC": token, 
-                "Content-Type": "application/json",
-                "Version": "17.0"
-            }
             
-            response = requests.post(url, headers=headers, json=rule_data, verify=False)
-            print(f"Rule: {rule_name} | Status: {response.status_code}")
+            # 1. Mövcud qaydanı axtar (Duplicate olmasın deyə)
+            search_url = f"{url}?filter=name%3D%22{rule_name}%22"
+            existing = requests.get(search_url, headers=headers, verify=False).json()
+
+            if existing:
+                rule_id = existing[0]['id']
+                # UPDATE (POST ilə həyata keçirilir)
+                response = requests.post(f"{url}/{rule_id}", headers=headers, json=rule_data, verify=False)
+                action = "UPDATED"
+            else:
+                # CREATE
+                response = requests.post(url, headers=headers, json=rule_data, verify=False)
+                action = "CREATED"
+
+            print(f"Rule: {rule_name} | Action: {action} | Status: {response.status_code}")
+            
+            # Əgər uğursuz olarsa, cavabı çap et
+            if response.status_code not in [200, 201]:
+                print(f"⚠️ Detallar: {response.text}")
+
         except Exception as e:
-            print(f"❌ {file_path} işlənərkən xəta: {e}")
+            print(f"❌ {file_path} xətası: {e}")
 
 def sync_splunk():
     print("\n--- 🟢 Splunk API Sync Başladı ---")
@@ -49,13 +64,11 @@ def sync_splunk():
     token = os.environ.get('SPLUNK_TOKEN')
 
     if not host or not token:
-        print(f"❌ Xəta: Splunk məlumatları çatışmır! Host: {host}")
+        print(f"❌ Xəta: Splunk məlumatları çatışmır!")
         return
 
     files = glob.glob(SPLUNK_PATH)
-    if not files:
-        print("ℹ️ Splunk üçün .spl faylı tapılmadı.")
-        return
+    headers = {"Authorization": f"Bearer {token}"}
 
     for file_path in files:
         try:
@@ -63,9 +76,7 @@ def sync_splunk():
                 query = f.read()
             
             rule_name = os.path.basename(file_path).split('.')[0]
-            # Splunk Management Port adətən 8089 olur
             url = f"https://{host}:8089/servicesNS/admin/search/saved/searches"
-            headers = {"Authorization": f"Bearer {token}"}
             
             data = {
                 "name": rule_name,
@@ -79,15 +90,13 @@ def sync_splunk():
             
             response = requests.post(url, headers=headers, data=data, verify=False)
             
-            # Əgər rule artıq varsa (409 Conflict), onu update edirik
             if response.status_code == 409:
-                update_url = f"{url}/{rule_name}"
-                response = requests.post(update_url, headers=headers, data=data, verify=False)
-                print(f"Alert: {rule_name} | Status: Updated (409 -> 200)")
+                requests.post(f"{url}/{rule_name}", headers=headers, data=data, verify=False)
+                print(f"Alert: {rule_name} | Status: Updated")
             else:
                 print(f"Alert: {rule_name} | Status: {response.status_code}")
         except Exception as e:
-            print(f"❌ {file_path} işlənərkən xəta: {e}")
+            print(f"❌ {file_path} xətası: {e}")
 
 if __name__ == "__main__":
     sync_qradar()
