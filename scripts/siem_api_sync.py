@@ -1,55 +1,36 @@
 import requests
-import yaml
 import base64
 import os
 from pathlib import Path
 
-# ── Config ────────────────────────────────────────────────────
-def load_config():
-    config_path = Path(__file__).parent.parent / "config.yaml"
-    if config_path.exists():
-        with open(config_path) as f:
-            return yaml.safe_load(f)
-    # GitHub Actions — environment variable-lardan oxu
-    return {
-        "github": {
-            "repo_owner": os.environ.get("GH_REPO_OWNER"),
-            "repo_name":  os.environ.get("GH_REPO_NAME"),
-            "branch":     os.environ.get("GH_BRANCH", "main"),
-            "token":      os.environ.get("GH_TOKEN"),
-        },
-        "splunk": {
-            "host":  os.environ.get("SPLUNK_HOST"),
-            "token": os.environ.get("SPLUNK_TOKEN"),
-            "app":   os.environ.get("SPLUNK_APP", "search"),
-        },
-        "qradar": {
-            "host":       os.environ.get("QRADAR_HOST"),
-            "token":      os.environ.get("QRADAR_TOKEN"),
-            "verify_ssl": False,
-        },
-    }
+# ── Config — yalnız environment variable-lardan oxunur ────────
+GH_TOKEN      = os.environ.get("GH_TOKEN")
+GH_REPO_OWNER = os.environ.get("GH_REPO_OWNER")
+GH_REPO_NAME  = os.environ.get("GH_REPO_NAME")
+GH_BRANCH     = os.environ.get("GH_BRANCH", "main")
 
-cfg = load_config()
-GH  = cfg["github"]
-SPL = cfg["splunk"]
-QR  = cfg["qradar"]
+SPLUNK_HOST   = os.environ.get("SPLUNK_HOST")
+SPLUNK_TOKEN  = os.environ.get("SPLUNK_TOKEN")
+SPLUNK_APP    = os.environ.get("SPLUNK_APP", "search")
+
+QRADAR_HOST   = os.environ.get("QRADAR_HOST")
+QRADAR_TOKEN  = os.environ.get("QRADAR_TOKEN")
 
 # ══════════════════════════════════════════════════════════════
 # GITHUB
 # ══════════════════════════════════════════════════════════════
 def gh_headers():
     return {
-        "Authorization": f"token {GH['token']}",
+        "Authorization": f"token {GH_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
 
 def github_list_files(path: str) -> list:
-    url = (f"https://api.github.com/repos/{GH['repo_owner']}/"
-           f"{GH['repo_name']}/contents/{path}?ref={GH['branch']}")
+    url = (f"https://api.github.com/repos/{GH_REPO_OWNER}/"
+           f"{GH_REPO_NAME}/contents/{path}?ref={GH_BRANCH}")
     r = requests.get(url, headers=gh_headers())
     if r.status_code == 404:
-        print(f"  [GitHub] Path tapılmadı: {path}")
+        print(f"  [GitHub] Path tapilmadi: {path}")
         return []
     r.raise_for_status()
     return r.json()
@@ -60,11 +41,11 @@ def github_read_file(file_url: str) -> str:
     return base64.b64decode(r.json()["content"]).decode("utf-8")
 
 # ══════════════════════════════════════════════════════════════
-# SPLUNK — splunk/security/ altındakı .spl faylları
+# SPLUNK
 # ══════════════════════════════════════════════════════════════
 def splunk_deploy(name: str, search_query: str):
-    base    = f"{SPL['host']}/servicesNS/nobody/{SPL['app']}/saved/searches"
-    headers = {"Authorization": f"Bearer {SPL['token']}"}
+    base    = f"{SPLUNK_HOST}/servicesNS/nobody/{SPLUNK_APP}/saved/searches"
+    headers = {"Authorization": f"Bearer {SPLUNK_TOKEN}"}
 
     exists = requests.get(
         f"{base}/{requests.utils.quote(name)}",
@@ -103,7 +84,7 @@ def splunk_deploy(name: str, search_query: str):
         print(f"  [Splunk] ERROR {r.status_code}: {name} — {r.text[:200]}")
 
 def deploy_splunk():
-    print("\n  → splunk/security/ qovluğu oxunur...")
+    print("\n  -> splunk/security/ qovlugu oxunur...")
     files = github_list_files("splunk/security")
     count = 0
     for f in files:
@@ -111,28 +92,25 @@ def deploy_splunk():
             continue
         rule_name    = f["name"].replace(".spl", "")
         search_query = github_read_file(f["url"]).strip()
-        print(f"    → {f['name']}")
+        print(f"    -> {f['name']}")
         splunk_deploy(rule_name, search_query)
         count += 1
-    print(f"  [Splunk] Cəmi {count} rule işləndi.")
+    print(f"  [Splunk] Cemi {count} rule islendi.")
 
 # ══════════════════════════════════════════════════════════════
-# QRADAR — qradar/aql_queries/ altındakı .aql faylları
+# QRADAR
 # ══════════════════════════════════════════════════════════════
 def qradar_headers():
     return {
-        "SEC":          QR["token"],
+        "SEC":          QRADAR_TOKEN,
         "Content-Type": "application/json",
         "Accept":       "application/json",
         "Version":      "14.0",
     }
 
 def qradar_existing_rules() -> dict:
-    url = f"{QR['host']}/api/analytics/rules?fields=id,name"
-    r = requests.get(
-        url, headers=qradar_headers(),
-        verify=QR.get("verify_ssl", False)
-    )
+    url = f"{QRADAR_HOST}/api/analytics/rules?fields=id,name"
+    r = requests.get(url, headers=qradar_headers(), verify=False)
     r.raise_for_status()
     return {rule["name"]: rule["id"] for rule in r.json()}
 
@@ -140,18 +118,18 @@ def qradar_deploy(name: str, aql_text: str):
     existing = qradar_existing_rules()
 
     rule_data = {
-        "name":        name,
-        "type":        "EVENT",
-        "enabled":     True,
-        "origin":      "USER",
-        "owner":       "admin",
-        "rule_type":   "COMMON",
+        "name":          name,
+        "type":          "EVENT",
+        "enabled":       True,
+        "origin":        "USER",
+        "owner":         "admin",
+        "rule_type":     "COMMON",
         "rule_contexts": ["EV"],
         "responses": [
             {
-                "type": "OFFENSE",
-                "contributing_credibility": 3,
-                "contributing_severity":    5,
+                "type":                      "OFFENSE",
+                "contributing_credibility":  3,
+                "contributing_severity":     5,
             }
         ],
         "text": aql_text,
@@ -159,19 +137,17 @@ def qradar_deploy(name: str, aql_text: str):
 
     if name in existing:
         rule_id = existing[name]
-        url = f"{QR['host']}/api/analytics/rules/{rule_id}"
+        url = f"{QRADAR_HOST}/api/analytics/rules/{rule_id}"
         r = requests.post(
             url, headers=qradar_headers(),
-            json=rule_data,
-            verify=QR.get("verify_ssl", False)
+            json=rule_data, verify=False
         )
         action = "UPDATED"
     else:
-        url = f"{QR['host']}/api/analytics/rules"
+        url = f"{QRADAR_HOST}/api/analytics/rules"
         r = requests.post(
             url, headers=qradar_headers(),
-            json=rule_data,
-            verify=QR.get("verify_ssl", False)
+            json=rule_data, verify=False
         )
         action = "CREATED"
 
@@ -181,7 +157,7 @@ def qradar_deploy(name: str, aql_text: str):
         print(f"  [QRadar] ERROR {r.status_code}: {name} — {r.text[:300]}")
 
 def deploy_qradar():
-    print("\n  → qradar/aql_queries/ qovluğu oxunur...")
+    print("\n  -> qradar/aql_queries/ qovlugu oxunur...")
     files = github_list_files("qradar/aql_queries")
     count = 0
     for f in files:
@@ -189,27 +165,27 @@ def deploy_qradar():
             continue
         rule_name = f["name"].replace(".aql", "")
         aql_text  = github_read_file(f["url"]).strip()
-        print(f"    → {f['name']}")
+        print(f"    -> {f['name']}")
         qradar_deploy(rule_name, aql_text)
         count += 1
-    print(f"  [QRadar] Cəmi {count} rule işləndi.")
+    print(f"  [QRadar] Cemi {count} rule islendi.")
 
 # ══════════════════════════════════════════════════════════════
 # ANA AXIŞI
 # ══════════════════════════════════════════════════════════════
 def main():
     print("\n" + "="*55)
-    print("  GitHub → Splunk + QRadar  |  siem_api_sync.py")
+    print("  GitHub -> Splunk + QRadar  |  siem_api_sync.py")
     print("="*55)
 
-    print("\n[1/2] Splunk deployment başlayır...")
+    print("\n[1/2] Splunk deployment baslayir...")
     deploy_splunk()
 
-    print("\n[2/2] QRadar deployment başlayır...")
+    print("\n[2/2] QRadar deployment baslayir...")
     deploy_qradar()
 
     print("\n" + "="*55)
-    print("  Deployment tamamlandı!")
+    print("  Deployment tamamlandi!")
     print("="*55 + "\n")
 
 if __name__ == "__main__":
