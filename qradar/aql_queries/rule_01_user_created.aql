@@ -1,0 +1,1 @@
+SELECT * FROM events WHERE LOGSOURCENAME(logsourceid) ILIKE '%Windows%' AND QIDNAME(qid) = 'User Added to Local Group' AND "Group Name" = 'Administrators'
