@@ -38,7 +38,7 @@ def qradar_headers():
         "SEC": QRADAR_TOKEN,
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Version": "14.0",
+        "Version": "7.5.0",
     }
 
 def qradar_deploy(name, aql_text):
