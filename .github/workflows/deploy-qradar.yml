@@ -5,6 +5,8 @@ on:
     paths:
       - 'qradar/**'
       - 'scripts/qradar_rules_deploy.py'
+  workflow_dispatch:
+
 jobs:
   deploy-qradar:
     runs-on: ubuntu-latest
@@ -19,5 +21,4 @@ jobs:
       - name: QRadar Rules Deploy et
         env:
           QRADAR_HOST:  ${{ secrets.QRADAR_URL }}
-          QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
-        run: python scripts/qradar_rules_deploy.py
+          QRADAR_TOKEN: ${{ secrets.QRA
