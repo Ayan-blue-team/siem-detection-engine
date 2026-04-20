@@ -6,7 +6,7 @@
   "supported_versions": ["7.5.0"],
   "contents": [
     {
-      "type": "custom_rule",
+      "type": "rules",
       "path": "rules/soc_offense_rules.xml"
     }
   ]
