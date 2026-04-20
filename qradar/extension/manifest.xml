@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-  <name>SOC Custom Offense Rules</name>
-  <description>10 Professional SOC Offense Detection Rules - MITRE ATT&amp;CK Mapped</description>
-  <version>1.0.0</version>
-  <author>SOC Team</author>
-  <supportedVersions>
-    <supportedVersion>7.5.0</supportedVersion>
-  </supportedVersions>
-  <contents>
-    <content type="custom_rule">rules/soc_offense_rules.xml</content>
-  </contents>
-</manifest>
+{
+  "name": "SOC Custom Offense Rules",
+  "description": "10 Professional SOC Offense Detection Rules - MITRE ATT&CK Mapped",
+  "version": "1.0.0",
+  "author": "SOC Team",
+  "supported_versions": ["7.5.0"],
+  "contents": [
+    {
+      "type": "custom_rule",
+      "path": "rules/soc_offense_rules.xml"
+    }
+  ]
+}
