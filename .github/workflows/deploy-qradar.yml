@@ -12,13 +12,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Python qur
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: Asılılıqları qur
+
+      - name: Asililiqlar qur
         run: pip install requests urllib3
+
       - name: QRadar Rules Deploy et
         env:
-          QRADAR_HOST:  ${{ secrets.QRADAR_URL }}
-          QRADAR_TOKEN: ${{ secrets.QRA
+          QRADAR_HOST: ${{ secrets.QRADAR_URL }}
+          QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
+        run: python scripts/qradar_rules_deploy.py
