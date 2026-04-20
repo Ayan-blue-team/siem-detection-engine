@@ -1,27 +1,23 @@
 name: Deploy QRadar Offense Rules
-
 on:
   push:
     branches: [main]
     paths:
-      - 'qradar/extension/**'
-
+      - 'qradar/**'
+      - 'scripts/qradar_rules_deploy.py'
 jobs:
   deploy-qradar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Python qur
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
       - name: Asılılıqları qur
         run: pip install requests urllib3
-
-      - name: QRadar Extension Deploy et
+      - name: QRadar Rules Deploy et
         env:
           QRADAR_HOST:  ${{ secrets.QRADAR_URL }}
           QRADAR_TOKEN: ${{ secrets.QRADAR_TOKEN }}
-        run: python scripts/qradar_extension_deploy.py
+        run: python scripts/qradar_rules_deploy.py
