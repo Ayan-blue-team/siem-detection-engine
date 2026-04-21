@@ -7,7 +7,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- KONFİQURASİYA ---
 # 1. GitHub Ayarları
-GITHUB_TOKEN = "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 "
+GITHUB_TOKEN = "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"
 # Nümunə API URL: https://api.github.com/repos/user/repo/contents/folder
 GITHUB_REPO_API = "https://api.github.com/repos/Ayan-blue-team/siem-detection-engine/contents/qradar/rules"
 
