@@ -1,142 +1,24 @@
 {
-  "qradar_custom_offense_rules": [
-    {
-      "id": 1,
-      "name": "Brute Force Login Attempt",
-      "description": "Eyni IP-dən 5 dəqiqə ərzində 10-dan çox uğursuz giriş cəhdi aşkar edilir.",
-      "category": "Authentication",
-      "severity": "High",
-      "conditions": {
-        "event_name": "Authentication Failed",
-        "threshold": 10,
-        "time_window_minutes": 5,
-        "group_by": "source_ip"
-      },
-      "response": "Offense yaradılır, SOC komandasına bildiriş göndərilir."
-    },
-    {
-      "id": 2,
-      "name": "Suspicious Port Scan Detection",
-      "description": "Tək bir mənbədən 60 saniyə ərzində 50-dən çox fərqli porta müraciət.",
-      "category": "Reconnaissance",
-      "severity": "Medium",
-      "conditions": {
-        "event_name": "Connection Attempt",
-        "threshold": 50,
-        "time_window_seconds": 60,
-        "group_by": "source_ip",
-        "distinct_field": "destination_port"
-      },
-      "response": "Offense yaradılır, mənbə IP blok siyahısına əlavə edilir."
-    },
-    {
-      "id": 3,
-      "name": "Malware C2 Communication",
-      "description": "Daxili host-un bilinən C2 IP/domain siyahısı ilə əlaqəsi aşkar edilir.",
-      "category": "Malware",
-      "severity": "Critical",
-      "conditions": {
-        "reference_set": "Known_C2_IPs",
-        "direction": "outbound",
-        "group_by": "source_ip"
-      },
-      "response": "Dərhal offense yaradılır, host şəbəkədən izolyasiya edilir."
-    },
-    {
-      "id": 4,
-      "name": "Privileged Account After Hours Login",
-      "description": "İş saatlarından kənar (22:00-07:00) admin hesabı ilə giriş.",
-      "category": "Insider Threat",
-      "severity": "High",
-      "conditions": {
-        "event_name": "Successful Login",
-        "username_pattern": "admin|root|svc_*",
-        "time_range": "22:00-07:00"
-      },
-      "response": "Offense yaradılır, hesab sahibinə email bildirişi göndərilir."
-    },
-    {
-      "id": 5,
-      "name": "Large Data Exfiltration Attempt",
-      "description": "Daxili hostdan xaricə 1 saatda 500MB-dən çox data ötürülməsi.",
-      "category": "Data Exfiltration",
-      "severity": "Critical",
-      "conditions": {
-        "flow_direction": "outbound",
-        "bytes_threshold": 524288000,
-        "time_window_minutes": 60,
-        "group_by": "source_ip"
-      },
-      "response": "Offense yaradılır, şəbəkə trafiği qeydə alınır."
-    },
-    {
-      "id": 6,
-      "name": "SQL Injection Attack Detected",
-      "description": "Web server loglarında SQL injection pattern-ləri aşkar edilir.",
-      "category": "Web Attack",
-      "severity": "High",
-      "conditions": {
-        "log_source": "Apache/Nginx",
-        "pattern": "(?i)(union.*select|select.*from|drop.*table|insert.*into)",
-        "group_by": "source_ip"
-      },
-      "response": "Offense yaradılır, WAF qaydası avtomatik aktivləşdirilir."
-    },
-    {
-      "id": 7,
-      "name": "New Admin Account Created",
-      "description": "İş saatları xaricində yeni administrator hesabı yaradılması.",
-      "category": "Account Management",
-      "severity": "High",
-      "conditions": {
-        "event_name": "User Account Created",
-        "group_membership": "Administrators",
-        "time_range": "18:00-08:00"
-      },
-      "response": "Offense yaradılır, HR və IT rəhbərliyi xəbərdar edilir."
-    },
-    {
-      "id": 8,
-      "name": "Ransomware File Encryption Pattern",
-      "description": "Qısa müddətdə çoxlu faylın adının dəyişdirilməsi/şifrələnməsi.",
-      "category": "Ransomware",
-      "severity": "Critical",
-      "conditions": {
-        "event_name": "File Rename",
-        "threshold": 100,
-        "time_window_minutes": 2,
-        "file_extension_pattern": "*.locked|*.encrypted|*.enc|*.crypto"
-      },
-      "response": "Kritik offense yaradılır, host dərhal şəbəkədən kəsilir."
-    },
-    {
-      "id": 9,
-      "name": "DNS Tunneling Detection",
-      "description": "Qeyri-adi ölçülü DNS sorğuları vasitəsilə data sızması cəhdi.",
-      "category": "DNS Anomaly",
-      "severity": "Medium",
-      "conditions": {
-        "protocol": "DNS",
-        "query_length_threshold": 100,
-        "requests_per_minute": 50,
-        "group_by": "source_ip"
-      },
-      "response": "Offense yaradılır, DNS trafiği loglanır."
-    },
-    {
-      "id": 10,
-      "name": "Lateral Movement via SMB",
-      "description": "Daxili şəbəkədə bir hostdan digərinə SMB protokolu ilə yayılma cəhdi.",
-      "category": "Lateral Movement",
-      "severity": "High",
-      "conditions": {
-        "protocol": "SMB",
-        "event_name": "Authentication Attempt",
-        "distinct_destinations_threshold": 5,
-        "time_window_minutes": 10,
-        "network_direction": "internal"
-      },
-      "response": "Offense yaradılır, endpoint security komandasına bildiriş göndərilir."
-    }
-  ]
+  "name": "SOC-Rule-01: Log Erasure Detection",
+  "description": "Windows sistemində logların silinməsi (wevtutil) aşkarlandı.",
+  "enabled": true,
+  "type": "EVENT",
+  "responseLimiter": {
+    "limit": 1,
+    "period": 300
+  },
+  "conditions": {
+    "type": "and",
+    "conditions": [
+      {
+        "type": "and",
+        "condition": {
+          "type": "property",
+          "property": "payload",
+          "operator": "contains",
+          "value": "wevtutil"
+        }
+      }
+    ]
+  }
 }
