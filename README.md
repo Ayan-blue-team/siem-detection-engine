@@ -7,10 +7,10 @@ This repository serves as a centralized hub for **Detection Engineering**. It ho
 
 #Architecture & Workflow
 The lifecycle of a detection rule in this environment follows the **Detection-as-Code** principles:
-1. Develop: Rules are written in YAML (Sigma) or native SIEM languages (SPL).
-2.Version: Every change is tracked via GitHub Commits.
-3.Validate: CI/CD checks for syntax and logic errors.
-4. **Deploy**: Automated push to Splunk/QRadar via REST APIs.
+ 1. Develop: Rules are written in YAML (Sigma) or native SIEM languages (SPL).
+ 2.Version: Every change is tracked via GitHub Commits.
+ 3.Validate: CI/CD checks for syntax and logic errors.
+ 4. **Deploy**: Automated push to Splunk/QRadar via REST APIs.
 
 
 
