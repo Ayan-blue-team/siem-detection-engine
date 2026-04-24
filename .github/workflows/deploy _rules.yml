@@ -1,0 +1,36 @@
+name: Splunk Detection as Code Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'splunk/security/**'   # Yalnız Splunk faylları dəyişəndə işləsin
+      - 'scripts/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    env:
+      # Node.js xəbərdarlığını aradan qaldırmaq üçün (əvvəlki söhbətimizdəki kimi)
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # Splunk məlumatlarını GitHub Secrets-dən götürürük
+      SPLUNK_URL: ${{ secrets.SPLUNK_URL }}
+      SPLUNK_TOKEN: ${{ secrets.SPLUNK_TOKEN }}
+
+    steps:
+      - name: Repo-nu yüklə
+        uses: actions/checkout@v4
+
+      - name: Python-u quraşdır
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Lazımi kitabxanaları yaz
+        run: |
+          pip install requests urllib3
+
+      - name: Splunk API Sync Skriptini İşlət
+        run: python scripts/siem_api_sync.py
