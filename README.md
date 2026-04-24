@@ -19,9 +19,11 @@ The lifecycle of a detection rule in this environment follows the **Detection-as
 All detections are mapped to the **MITRE ATT&CK Framework** to ensure comprehensive visibility across the attack lifecycle.
 
 # Splunk (15 Rules)
---Log Sources: WinEventLog (Security, System), Sysmon, Network Traffic.
---Focus: Privilege Escalation, Credential Access, Defense Evasion.
---Languages: SPL (Search Processing Language).
+  1.Log Sources: WinEventLog (Security, System), Sysmon, Network Traffic.
+
+  2.Focus: Privilege Escalation, Credential Access, Defense Evasion.
+
+  3.Languages: SPL (Search Processing Language).
 
 
 
