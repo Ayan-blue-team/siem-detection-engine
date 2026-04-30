@@ -62,11 +62,6 @@ All detections are mapped to the **MITRE ATT&CK Framework** to ensure comprehens
 
 ---
 
-# IBM QRadar (12 Rules)
-
-- **Log Sources:** Windows Security Events, Sysmon, Network Flow, DNS Logs
-- **Focus:** Lateral Movement, Credential Access, Network Anomalies
-- **Language:** AQL (Ariel Query Language)
 
 ---
 
@@ -77,27 +72,24 @@ siem-detection-engine/
 ├── .github/workflows/
 │   └── deploy_rules.yml        # CI/CD — syntax check + automated API push
 ├── splunk/
-│   ├── security/               # High-severity SPL alerts (15 rules)
-│   │   ├── BloodHoundLDAPRecon.spl
-│   │   ├── DCSyncAttack.spl
-│   │   ├── DLLHijacking.spl
-│   │   ├── Kerberoasting.spl
-│   │   ├── LOLbinsabuse.spl
-│   │   ├── PowerShellEncodedCommand.spl
-│   │   ├── PrivilegedAccountOff-HoursLogin.spl
-│   │   ├── RansomwareBehavior.spl
-│   │   ├── ScheduledTaskAbuse.spl
-│   │   ├── SuspiciousOutboundConnection.spl
-│   │   ├── WMIPersistence.spl
-│   │   ├── WebShellDetection.spl
-│   │   ├── dnstunneling.spl
-│   │   ├── lsass.spl
-│   │   └── pass-the-hash.spl
-│   └── audit/                  # Compliance-related rules
-├── qradar/
-│   └── security/               # AQL rules (12 rules)
-├── sigma/                      # Vendor-neutral Sigma YAML sources
-│   └── *.yml
+│   ── security/               # High-severity SPL alerts (15 rules)
+│      ├── BloodHoundLDAPRecon.spl
+│      ├── DCSyncAttack.spl
+│      ├── DLLHijacking.spl
+│      ├── Kerberoasting.spl
+│      ├── LOLbinsabuse.spl
+│      ├── PowerShellEncodedCommand.spl
+│      ├── PrivilegedAccountOff-HoursLogin.spl
+│      ├── RansomwareBehavior.spl
+│      ├── ScheduledTaskAbuse.spl
+│      ├── SuspiciousOutboundConnection.spl
+│      ├── WMIPersistence.spl
+│      ├── WebShellDetection.spl
+│      ├── dnstunneling.spl
+│      ├── lsass.spl
+│      └── pass-the-hash.spl
+│   
+|
 └── scripts/
     └── siem_api_sync.py        # Python engine for SIEM REST API integration
 ```
@@ -109,9 +101,9 @@ siem-detection-engine/
 The `deploy_rules.yml` GitHub Actions workflow:
 
 1. Triggers on push to `main` or `staging` branch
-2. Validates SPL/AQL syntax
+2. Validates SPL syntax
 3. Runs logic checks against test datasets
-4. On success — pushes rules to Splunk and QRadar via REST API
+4. On success — pushes rules to Splunk  via REST API
 
 ---
 
