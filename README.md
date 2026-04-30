@@ -1,27 +1,80 @@
-# Siem-detection-engine
+# siem-detection-engine
 
-A centralized, version-controlled repository for high-fidelity detection rules. Automated deployment of MITRE ATT&CK® aligned content for Splunk (SPL) and IBM QRadar (AQL) using CI/CD pipelines.
+Müəssisə mühitlərində təhdidləri aşkar etmək üçün mərkəzləşdirilmiş, versiyaya nəzarət edilən aşkarlama qaydaları anbarı. Bütün qaydalar **MITRE ATT&CK®** çərçivəsinə uyğunlaşdırılmış və CI/CD pipeline vasitəsilə Splunk-a avtomatik yerləşdirilir.
 
 ---
 
-# Detection-as-Code (DaC) Framework
+## Mündəricat
 
-This repository serves as a centralized hub for **Detection Engineering**. It hosts a library of professional-grade detection rules designed to identify advanced adversary behaviors (TTPs) within enterprise environments.
+- [Ümumi baxış](#ümumi-baxış)
+- [Qovluq strukturu](#qovluq-strukturu)
+- [Detection-as-Code iş axını](#detection-as-code-iş-axını)
+- [MITRE ATT&CK əhatəsi](#mitre-attck-əhatəsi)
+- [Splunk qaydaları](#splunk-qaydaları)
+- [CI/CD pipeline](#cicd-pipeline)
+- [Başlanğıc](#başlanğıc)
+- [Töhfə vermək](#töhfə-vermək)
 
-## Architecture & Workflow
+---
 
-The lifecycle of a detection rule in this environment follows the **Detection-as-Code** principles:
+## Ümumi baxış
 
-1. **Develop** — Rules are written in YAML (Sigma) or native SIEM languages (SPL/AQL).
-2. **Version** — Every change is tracked via GitHub Commits and Pull Requests.
-3. **Validate** — CI/CD checks for syntax and logic errors via `deploy_rules.yml`.
-4. **Deploy** — Automated push to Splunk/QRadar via REST APIs using `siem_api_sync.py`.
+Bu anbar **Detection Engineering** üçün mərkəzləşdirilmiş bir mərkəz rolunu oynayır. Məqsəd — müəssisə mühitlərində təcavüzkarların davranışlarını (TTP-ləri) aşkar edən peşəkar səviyyəli qaydalar kitabxanası yaratmaq və bunu tam avtomatlaşdırılmış **Detection-as-Code (DaC)** prinsipinə əsasən idarə etməkdir.
 
-## Coverage & Mapping
+**Dəstəklənən SIEM platforması:** Splunk (SPL)
 
-All detections are mapped to the **MITRE ATT&CK Framework** to ensure comprehensive visibility across the attack lifecycle.
+---
 
-| Tactic | Rules |
+## Qovluq strukturu
+
+```
+siem-detection-engine/
+├── .github/workflows/
+│   └── deploy_rules.yml        # CI/CD — sintaksis yoxlama + avtomatik API push
+├── splunk/
+│   └── security/               # Yüksək səviyyəli SPL bildirişləri (15 qayda)
+│       ├── BloodHoundLDAPRecon.spl
+│       ├── DCSyncAttack.spl
+│       ├── DLLHijacking.spl
+│       ├── Kerberoasting.spl
+│       ├── LOLbinsabuse.spl
+│       ├── PowerShellEncodedCommand.spl
+│       ├── PrivilegedAccountOff-HoursLogin.spl
+│       ├── RansomwareBehavior.spl
+│       ├── ScheduledTaskAbuse.spl
+│       ├── SuspiciousOutboundConnection.spl
+│       ├── WMIPersistence.spl
+│       ├── WebShellDetection.spl
+│       ├── dnstunneling.spl
+│       ├── lsass.spl
+│       └── pass-the-hash.spl
+└── scripts/
+    └── siem_api_sync.py        # Splunk REST API inteqrasiya mühərriki
+```
+
+---
+
+## Detection-as-Code iş axını
+
+Hər aşkarlama qaydası aşağıdakı mərhələlərdən keçir:
+
+```
+Develop ──▶ Version ──▶ Validate ──▶ Deploy
+  │             │            │           │
+SPL yazılır   GitHub      CI/CD       Splunk
+              commit      yoxlama     REST API
+```
+
+1. **Develop** — Qaydalar SPL dilində yazılır, MITRE ATT&CK texnikası ilə etiketlənir.
+2. **Version** — Hər dəyişiklik GitHub commit və Pull Request vasitəsilə izlənir.
+3. **Validate** — `deploy_rules.yml` CI/CD sintaksis və məntiq xətalarını yoxlayır.
+4. **Deploy** — `siem_api_sync.py` qaydaları REST API vasitəsilə Splunk-a push edir.
+
+---
+
+## MITRE ATT&CK əhatəsi
+
+| Taktika | Qayda sayı |
 |---|---|
 | Credential Access | 5 |
 | Privilege Escalation | 4 |
@@ -36,95 +89,102 @@ All detections are mapped to the **MITRE ATT&CK Framework** to ensure comprehens
 
 ---
 
-# Splunk (15 Rules)
+## Splunk qaydaları
 
-- **Log Sources:** WinEventLog (Security, System), Sysmon, Network Traffic
-- **Focus:** Privilege Escalation, Credential Access, Defense Evasion
-- **Language:** SPL (Search Processing Language)
+**Log mənbələri:** WinEventLog (Security, System), Sysmon, Network Traffic  
+**Dil:** SPL (Search Processing Language)  
+**Cəmi:** 15 qayda
 
-| Rule | Tactic | Severity |
+### Active Directory hücumları — Credential Access
+
+| Fayl | Məqsəd | Ciddilik |
 |---|---|---|
-| BloodHoundLDAPRecon | Credential Access | Critical |
-| DCSyncAttack | Credential Access | Critical |
-| DLLHijacking | Defense Evasion | High |
-| Kerberoasting | Credential Access | Critical |
-| LOLbinsabuse | Execution | High |
-| PowerShellEncodedCommand | Execution | High |
-| PrivilegedAccountOff-HoursLogin | Privilege Escalation | High |
-| RansomwareBehavior | Impact | Critical |
-| ScheduledTaskAbuse | Persistence | High |
-| SuspiciousOutboundConnection | Command & Control | High |
-| WMIPersistence | Persistence | High |
-| WebShellDetection | Persistence | Critical |
-| dnstunneling | Exfiltration | High |
-| lsass | Credential Access | Critical |
-| pass-the-hash | Lateral Movement | Critical |
+| `BloodHoundLDAPRecon.spl` | AD strukturunu xəritələndirmək üçün BloodHound aləti istifadəsini aşkar edir | Critical |
+| `DCSyncAttack.spl` | Domain Controller-dən şifrə hash-larını oğurlamaq cəhdini aşkar edir | Critical |
+| `Kerberoasting.spl` | Kerberos biletlərini oğurlayaraq offline şifrə sındırma cəhdini aşkar edir | Critical |
+| `lsass.spl` | Windows-un şifrə yaddaşına (LSASS prosesi) icazəsiz giriş cəhdini aşkar edir | Critical |
+| `pass-the-hash.spl` | Şifrə yerinə hash istifadə edərək autentifikasiyaya girişi aşkar edir | Critical |
+
+### Davamlılıq mexanizmləri — Persistence
+
+| Fayl | Məqsəd | Ciddilik |
+|---|---|---|
+| `WMIPersistence.spl` | Sistem yenidən başladıqda zərərli kodun işləməsi üçün WMI istifadəsini aşkar edir | High |
+| `ScheduledTaskAbuse.spl` | Zərərli scheduled task yaradılmasını aşkar edir | High |
+| `WebShellDetection.spl` | Veb server üzərindən uzaqdan idarəetmə (webshell) cəhdlərini aşkar edir | Critical |
+
+### Müdafiədən yayınma — Defense Evasion / Execution
+
+| Fayl | Məqsəd | Ciddilik |
+|---|---|---|
+| `DLLHijacking.spl` | Zərərli DLL faylı ilə proqramın ələ keçirilməsini aşkar edir | High |
+| `LOLbinsabuse.spl` | Legit sistem alətlərinin (`certutil`, `wmic`, `mshta`) zərərli istifadəsini aşkar edir | High |
+| `PowerShellEncodedCommand.spl` | Gizlədilmiş (base64) PowerShell əmrlərini aşkar edir | High |
+
+### Şəbəkə və kənarlaşdırma — C2 / Exfiltration
+
+| Fayl | Məqsəd | Ciddilik |
+|---|---|---|
+| `SuspiciousOutboundConnection.spl` | Şübhəli xarici bağlantıları aşkar edir | High |
+| `dnstunneling.spl` | DNS protokolu vasitəsilə məlumat ötürülməsini aşkar edir | High |
+
+### Giriş anomaliyaları — Privilege Escalation
+
+| Fayl | Məqsəd | Ciddilik |
+|---|---|---|
+| `PrivilegedAccountOff-HoursLogin.spl` | Admin hesabların iş saatlarından kənar girişlərini aşkar edir | High |
+
+### Təsir — Impact
+
+| Fayl | Məqsəd | Ciddilik |
+|---|---|---|
+| `RansomwareBehavior.spl` | Ransomware-ə xas fəaliyyəti (kütləvi fayl şifrələmə) aşkar edir | Critical |
 
 ---
 
+## CI/CD pipeline
+
+`deploy_rules.yml` GitHub Actions iş axını:
+
+1. `main` və ya `staging` branch-ə push olduqda avtomatik işə düşür.
+2. SPL sintaksis yoxlaması aparılır.
+3. Test dataset-ləri əsasında məntiq yoxlanışı icra edilir.
+4. Uğurlu olduqda qaydalar Splunk-a REST API vasitəsilə push edilir.
 
 ---
 
-# Repository Structure
-
-```
-siem-detection-engine/
-├── .github/workflows/
-│   └── deploy_rules.yml        # CI/CD — syntax check + automated API push
-├── splunk/
-│   ── security/               # High-severity SPL alerts (15 rules)
-│      ├── BloodHoundLDAPRecon.spl
-│      ├── DCSyncAttack.spl
-│      ├── DLLHijacking.spl
-│      ├── Kerberoasting.spl
-│      ├── LOLbinsabuse.spl
-│      ├── PowerShellEncodedCommand.spl
-│      ├── PrivilegedAccountOff-HoursLogin.spl
-│      ├── RansomwareBehavior.spl
-│      ├── ScheduledTaskAbuse.spl
-│      ├── SuspiciousOutboundConnection.spl
-│      ├── WMIPersistence.spl
-│      ├── WebShellDetection.spl
-│      ├── dnstunneling.spl
-│      ├── lsass.spl
-│      └── pass-the-hash.spl
-│   
-|
-└── scripts/
-    └── siem_api_sync.py        # Python engine for SIEM REST API integration
-```
-
----
-
-# CI/CD Pipeline
-
-The `deploy_rules.yml` GitHub Actions workflow:
-
-1. Triggers on push to `main` or `staging` branch
-2. Validates SPL syntax
-3. Runs logic checks against test datasets
-4. On success — pushes rules to Splunk  via REST API
-
----
-
-# Getting Started
+## Başlanğıc
 
 ```bash
-# Clone the repository
+# Reponu klon et
 git clone https://github.com/Ayan-blue-team/siem-detection-engine.git
+cd siem-detection-engine
 
-# Install Python dependencies
+# Python asılılıqlarını yüklə
 pip install -r requirements.txt
 
-# Run the API sync manually
+# API sinxronizasiyasını əl ilə icra et
 python scripts/siem_api_sync.py --target splunk --env prod
 ```
 
 ---
 
-# Contributing
+## Töhfə vermək
 
-1. Create a feature branch: `git checkout -b detection/new-rule-name`
-2. Write the rule in SPL or Sigma YAML
-3. Map it to a MITRE ATT&CK technique in the rule header
-4. Open a Pull Request — CI will validate automatically
+1. Yeni branch yarat:
+```bash
+git checkout -b detection/yeni-qayda-adi
+```
+
+2. Qaydanı SPL dilində yaz, fayl başlığına MITRE ATT&CK texnikasını əlavə et:
+```spl
+| ` MITRE: T1003.001 — OS Credential Dumping `
+```
+
+3. Pull Request aç — CI avtomatik yoxlayacaq.
+
+---
+
+## Lisenziya
+
+Bu anbar Millisec şirkətinin daxili SOC mühəndislik infrastrukturunun bir hissəsidir.
